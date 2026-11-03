@@ -8,7 +8,7 @@ namespace netrx {
 enum class Side : uint8_t { Ask, Bid };
 enum class MsgType : uint8_t { Add, Cancel };
 struct Message {
-  uint64_t intended_send_time;
+  uint64_t send_time_ns;
   uint64_t seq_id;
   uint64_t order_id;
   uint64_t price;
