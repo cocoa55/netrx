@@ -1,3 +1,3 @@
-#include <netrx.hpp>
+#include <netrx/message.hpp>
 
 int main() {}
