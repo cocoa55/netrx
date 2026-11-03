@@ -81,7 +81,11 @@ int main() {
   sockaddr_in dest{};
   dest.sin_family = AF_INET;
   dest.sin_port = htons(9000);
-  inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr);
+  if (inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr) != 1) {
+    std::cerr << "inet_pton: invalid address " << '\n';
+    close(fd);
+    return 1;
+  }
   sendPackets(fd, dest);
   close(fd);
 }
