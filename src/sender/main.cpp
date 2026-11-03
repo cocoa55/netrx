@@ -16,7 +16,7 @@
 #include <string_view>
 using namespace std::chrono_literals;
 constexpr size_t ITERATIONS{1000000};
-constexpr auto INTERVAL{20us};
+constexpr auto INTERVAL{10us};
 
 void printPercentiles(const std::string_view name, std::vector<std::int64_t>& samples) {
   std::ranges::sort(samples);
