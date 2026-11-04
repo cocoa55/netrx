@@ -4,19 +4,18 @@
 #include <cstring>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <unistd.h>
 
 #include <chrono>
-#include <cstddef>
 #include <iostream>
-#include <string_view>
+#include <system_error>
 #include <vector>
 
 #include "netrx/config.hpp"
 #include "netrx/message.hpp"
+#include "netrx/socket.hpp"
 #include "netrx/stats.hpp"
 
-void sendPackets(int fd, const sockaddr_in &dest) {
+void sendPackets(const netrx::Socket &sock, const sockaddr_in &dest) {
   const auto start_time = std::chrono::steady_clock::now();
   std::vector<int64_t> lateness_samples(netrx::ITERATIONS);
   std::vector<int64_t> sendto_samples(netrx::ITERATIONS);
@@ -39,7 +38,7 @@ void sendPackets(int fd, const sockaddr_in &dest) {
                        .side = netrx::Side::Ask,
                        .type = netrx::MsgType::Add};
     auto send_start = std::chrono::steady_clock::now();
-    ssize_t n = sendto(fd, &msg, sizeof(msg), 0,
+    ssize_t n = sendto(sock.getFd(), &msg, sizeof(msg), 0,
                        reinterpret_cast<const sockaddr *>(&dest), sizeof(dest));
     auto send_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now() - send_start);
@@ -56,19 +55,19 @@ void sendPackets(int fd, const sockaddr_in &dest) {
 }
 
 int main() {
-  int fd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (fd < 0) {
-    std::cerr << "socket error\n";
+  try {
+    netrx::Socket sock{};
+    sockaddr_in dest{};
+    dest.sin_family = AF_INET;
+    dest.sin_port = htons(netrx::PORT);
+    if (inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr) != 1) {
+      std::cerr << "inet_pton: invalid address " << '\n';
+      return 1;
+    }
+    sendPackets(sock, dest);
+  } catch (const std::system_error &e) {
+    std::cerr << e.what() << '\n';
     return 1;
   }
-  sockaddr_in dest{};
-  dest.sin_family = AF_INET;
-  dest.sin_port = htons(netrx::PORT);
-  if (inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr) != 1) {
-    std::cerr << "inet_pton: invalid address " << '\n';
-    close(fd);
-    return 1;
-  }
-  sendPackets(fd, dest);
-  close(fd);
+  return 0;
 }
