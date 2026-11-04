@@ -1,10 +1,28 @@
+#include <cstdint>
 #include <netrx/stats.hpp>
 
 #include <algorithm>
+#include <filesystem>
+#include <fstream>
+#include <ios>
 #include <iostream>
 #include <numeric>
+#include <stdexcept>
+#include <string_view>
 
 namespace stats {
+void writeSamples(const std::filesystem::path &path,
+                  const std::vector<int64_t> &samples) {
+  std::ofstream out(path, std::ios::binary);
+  if (!out) {
+    throw std::runtime_error("cannot open " + path.string());
+  }
+  out.write(reinterpret_cast<const char *>(samples.data()),
+            static_cast<std::streamsize>(samples.size() * sizeof(int64_t)));
+  if (!out) {
+    throw std::runtime_error("write failed: " + path.string());
+  }
+}
 void printPercentiles(const std::string_view name,
                       std::vector<int64_t> &samples) {
   std::ranges::sort(samples);

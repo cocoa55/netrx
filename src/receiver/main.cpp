@@ -55,6 +55,7 @@ void receivePackets(const netrx::Socket &sock) {
             << '\n';
   std::cout << "Packets Reordered: " << seq.reordered() << '\n';
   std::cout << "Packets Received:  " << packets_recv << '\n';
+  stats::writeSamples("results/latency.bin", latency_samples);
   stats::printPercentiles("Latency", latency_samples);
   std::cout << "---------------------------------------\n";
 }

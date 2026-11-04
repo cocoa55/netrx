@@ -49,6 +49,8 @@ void sendPackets(const netrx::Socket &sock, const sockaddr_in &dest) {
     sendto_samples[i] = send_duration.count();
   }
   std::cout << "-------[sendPackets] Finished-------\n";
+  stats::writeSamples("results/lateness.bin", lateness_samples);
+  stats::writeSamples("results/sendto.bin", sendto_samples);
   stats::printPercentiles("Lateness", lateness_samples);
   stats::printPercentiles("Send Time", sendto_samples);
   std::cout << "------------------------------------\n";

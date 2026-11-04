@@ -20,4 +20,4 @@ struct Message {
 static_assert(sizeof(Message) == 40);
 static_assert(std::is_trivially_copyable_v<Message>);
 static_assert(std::endian::native == std::endian::little);
-}; // namespace netrx
+} // namespace netrx
