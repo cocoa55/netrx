@@ -8,7 +8,8 @@ namespace netrx {
 enum class Side : uint8_t { Ask, Bid };
 enum class MsgType : uint8_t { Add, Cancel };
 struct Message {
-  uint64_t send_time_ns;
+  uint64_t intended_send_ns;
+  uint64_t actual_send_ns;
   uint64_t seq_id;
   uint64_t order_id;
   uint64_t price;
@@ -17,7 +18,7 @@ struct Message {
   Side side;
   MsgType type;
 };
-static_assert(sizeof(Message) == 40);
+static_assert(sizeof(Message) == 48);
 static_assert(std::is_trivially_copyable_v<Message>);
 static_assert(std::endian::native == std::endian::little);
 } // namespace netrx

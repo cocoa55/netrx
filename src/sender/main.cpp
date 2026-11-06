@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <stdexcept>
 #include <system_error>
 #include <vector>
 
@@ -24,11 +25,16 @@ void sendPackets(const netrx::Socket &sock, const sockaddr_in &dest) {
         start_time + netrx::INTERVAL * static_cast<int64_t>(i);
     while (due_time > std::chrono::steady_clock::now()) {
     }
+    const auto actual_send = std::chrono::steady_clock::now();
     const auto lateness = std::chrono::duration_cast<std::chrono::nanoseconds>(
-        std::chrono::steady_clock::now() - due_time);
-    netrx::Message msg{.send_time_ns = static_cast<uint64_t>(
+        actual_send - due_time);
+    netrx::Message msg{.intended_send_ns = static_cast<uint64_t>(
                            std::chrono::duration_cast<std::chrono::nanoseconds>(
                                due_time.time_since_epoch())
+                               .count()),
+                       .actual_send_ns = static_cast<uint64_t>(
+                           std::chrono::duration_cast<std::chrono::nanoseconds>(
+                               actual_send.time_since_epoch())
                                .count()),
                        .seq_id = i,
                        .order_id = 1,
@@ -67,7 +73,7 @@ int main() {
       return 1;
     }
     sendPackets(sock, dest);
-  } catch (const std::system_error &e) {
+  } catch (const std::runtime_error &e) {
     std::cerr << e.what() << '\n';
     return 1;
   }

@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include <chrono>
 #include <cstddef>
@@ -20,6 +21,7 @@
 enum class Mode : uint8_t { BUSY, SLEEPING };
 template <Mode M> void receivePackets(const netrx::Socket &sock) {
   std::vector<int64_t> latency_samples(netrx::ITERATIONS);
+  std::vector<int64_t> pipeline_samples(netrx::ITERATIONS);
   size_t packets_recv{};
   netrx::SeqTracker seq{};
   netrx::Message msg;
@@ -55,7 +57,10 @@ template <Mode M> void receivePackets(const netrx::Socket &sock) {
                             time_recv.time_since_epoch())
                             .count();
     latency_samples[packets_recv] =
-        now_ns - static_cast<int64_t>(msg.send_time_ns);
+        now_ns - static_cast<int64_t>(msg.intended_send_ns);
+    pipeline_samples[packets_recv] =
+        now_ns - static_cast<int64_t>(msg.actual_send_ns);
+
     packets_recv++;
     if constexpr (M == Mode::SLEEPING) {
       if (packets_recv == 1) {
@@ -68,6 +73,7 @@ template <Mode M> void receivePackets(const netrx::Socket &sock) {
     seq.onPacket(msg.seq_id);
   }
   latency_samples.resize(packets_recv);
+  pipeline_samples.resize(packets_recv);
   if (packets_recv == 0) {
     std::cout << "No packets received\n";
     return;
@@ -80,11 +86,14 @@ template <Mode M> void receivePackets(const netrx::Socket &sock) {
   std::cout << "Packets Received:  " << packets_recv << '\n';
   if constexpr (M == Mode::BUSY) {
     stats::writeSamples("results/latencyPoll.bin", latency_samples);
+    stats::writeSamples("results/pipelinePoll.bin", pipeline_samples);
   }
   if constexpr (M == Mode::SLEEPING) {
     stats::writeSamples("results/latencySleep.bin", latency_samples);
+    stats::writeSamples("results/pipelineSleep.bin", pipeline_samples);
   }
   stats::printPercentiles("Latency", latency_samples);
+  stats::printPercentiles("Pipeline", pipeline_samples);
   std::cout << "---------------------------------------\n";
 }
 
