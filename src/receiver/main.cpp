@@ -1,9 +1,11 @@
 #include <cerrno>
 #include <cstdint>
+#include <cstdlib>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <charconv>
 #include <chrono>
 #include <cstddef>
 #include <iostream>
@@ -98,20 +100,33 @@ template <Mode M> void receivePackets(const netrx::Socket &sock) {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    std::cerr << "usage: " << argv[0] << " busy|sleep\n";
+  if (argc != 2 && argc != 3) {
+    std::cerr << "usage: " << argv[0] << " busy|sleep [rcvbuf_bytes]\n";
     return 1;
   }
-  const std::string_view arg{argv[1]};
+  const std::string_view arg1{argv[1]};
   Mode mode{};
-  if (arg == "busy") {
+  if (arg1 == "busy") {
     mode = Mode::BUSY;
-  } else if (arg == "sleep") {
+  } else if (arg1 == "sleep") {
     mode = Mode::SLEEPING;
   } else {
-    std::cerr << "unknown mode '" << arg << "'. usage: " << argv[0]
-              << " busy|sleep\n";
+    std::cerr << "unknown mode '" << arg1 << "'. usage: " << argv[0]
+              << " busy|sleep [rcvbuf_bytes]\n";
     return 1;
+  }
+
+  int rcvbuf{};
+  if (argc == 3) {
+    const std::string_view size_arg{argv[2]};
+    const auto [ptr, ec] = std::from_chars(
+        size_arg.data(), size_arg.data() + size_arg.size(), rcvbuf);
+    if (ec != std::errc{} || ptr != size_arg.data() + size_arg.size() ||
+        rcvbuf <= 0) {
+      std::cerr << "invalid rcvbuf size '" << size_arg
+                << "'. usage: " << argv[0] << " busy|sleep [rcvbuf_bytes]\n";
+      return 1;
+    }
   }
   try {
     netrx::Socket sock{};
@@ -124,6 +139,19 @@ int main(int argc, char *argv[]) {
     if (bnd < 0) {
       throw std::system_error(errno, std::generic_category(), "bind");
     }
+    if (rcvbuf > 0) {
+      if (setsockopt(sock.getFd(), SOL_SOCKET, SO_RCVBUF, &rcvbuf,
+                     sizeof(rcvbuf)) < 0) {
+        throw std::system_error(errno, std::generic_category(), "setsockopt");
+      }
+    }
+    int actual{};
+    socklen_t len = sizeof(actual);
+    if (getsockopt(sock.getFd(), SOL_SOCKET, SO_RCVBUF, &actual, &len) < 0) {
+      throw std::system_error(errno, std::generic_category(), "getsockopt");
+    }
+
+    std::cout << "rcvbuf: " << actual << " bytes\n";
     if (mode == Mode::BUSY) {
       receivePackets<Mode::BUSY>(sock);
     } else {
