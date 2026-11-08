@@ -2,6 +2,7 @@
 #include <cerrno>
 #include <cstdint>
 #include <cstring>
+#include <ctime>
 #include <netinet/in.h>
 #include <print>
 #include <sys/socket.h>
@@ -9,7 +10,6 @@
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
-#include <system_error>
 #include <vector>
 
 #include "netrx/config.hpp"
@@ -24,6 +24,17 @@ void sendPackets(const netrx::Socket &sock, const sockaddr_in &dest) {
   for (size_t i{}; i < netrx::ITERATIONS; i++) {
     const auto due_time =
         start_time + netrx::INTERVAL * static_cast<int64_t>(i);
+
+    const auto wake_time = due_time - netrx::SLEEP_MARGIN;
+    if (wake_time > std::chrono::steady_clock::now()) {
+      const auto wake_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                               wake_time.time_since_epoch())
+                               .count();
+      const timespec ts{.tv_sec = wake_ns / 1'000'000'000,
+                        .tv_nsec = wake_ns % 1'000'000'000};
+      clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, nullptr);
+    }
+
     while (due_time > std::chrono::steady_clock::now()) {
     }
     const auto actual_send = std::chrono::steady_clock::now();
