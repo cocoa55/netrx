@@ -18,9 +18,9 @@
 #include "netrx/stats.hpp"
 
 void sendPackets(const netrx::Socket &sock, const sockaddr_in &dest) {
-  const auto start_time = std::chrono::steady_clock::now();
   std::vector<int64_t> lateness_samples(netrx::ITERATIONS);
   std::vector<int64_t> sendto_samples(netrx::ITERATIONS);
+  const auto start_time = std::chrono::steady_clock::now();
   for (size_t i{}; i < netrx::ITERATIONS; i++) {
     const auto due_time =
         start_time + netrx::INTERVAL * static_cast<int64_t>(i);
