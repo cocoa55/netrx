@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <netinet/in.h>
+#include <print>
 #include <sys/socket.h>
 
 #include <chrono>
@@ -54,12 +55,12 @@ void sendPackets(const netrx::Socket &sock, const sockaddr_in &dest) {
     lateness_samples[i] = lateness.count();
     sendto_samples[i] = send_duration.count();
   }
-  std::cout << "-------[sendPackets] Finished-------\n";
+  std::println("-------[sendPackets] Finished-------");
   stats::writeSamples("results/lateness.bin", lateness_samples);
   stats::writeSamples("results/sendto.bin", sendto_samples);
   stats::printPercentiles("Lateness", lateness_samples);
   stats::printPercentiles("Send Time", sendto_samples);
-  std::cout << "------------------------------------\n";
+  std::println("------------------------------------");
 }
 
 int main() {

@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <netrx/stats.hpp>
+#include <print>
 
 #include <algorithm>
 #include <filesystem>
@@ -33,13 +34,13 @@ void printPercentiles(const std::string_view name,
   const auto p99 = samples[static_cast<std::size_t>(samples.size() * 0.99)];
   const auto p99_9 = samples[static_cast<std::size_t>(samples.size() * 0.999)];
   const auto p_max = samples.back();
-  std::cout << "---" << name << "---\n";
-  std::cout << "Average: " << avg << "ns\n";
-  std::cout << "p50:              " << p50 << '\n';
-  std::cout << "p95:              " << p95 << '\n';
-  std::cout << "p99:              " << p99 << '\n';
-  std::cout << "p99.9:            " << p99_9 << '\n';
-  std::cout << "pmax:             " << p_max << '\n';
-  std::cout << "----------------\n";
+  std::println("---{}---", name);
+  std::println("Average:           {}ns", avg);
+  std::println("p50:               {}", p50);
+  std::println("p95:               {}", p95);
+  std::println("p99:               {}", p99);
+  std::println("p99.9:             {}", p99_9);
+  std::println("pmax:              {}", p_max);
+  std::println("----------------");
 }
-}; // namespace stats
+} // namespace stats

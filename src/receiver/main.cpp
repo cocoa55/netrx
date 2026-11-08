@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <netinet/in.h>
+#include <print>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -80,12 +81,11 @@ template <Mode M> void receivePackets(const netrx::Socket &sock) {
     std::cout << "No packets received\n";
     return;
   }
-  std::cout << "-------[receivePackets] Finished-------\n";
-  std::cout << "Packets Dropped:   " << seq.dropped() << '\n';
-  std::cout << "Total Dropped:     " << netrx::ITERATIONS - packets_recv
-            << '\n';
-  std::cout << "Packets Reordered: " << seq.reordered() << '\n';
-  std::cout << "Packets Received:  " << packets_recv << '\n';
+  std::println("-------[receivePackets] Finished-------");
+  std::println("Packets Dropped:    {}", seq.dropped());
+  std::println("Total Dropped:      {}", netrx::ITERATIONS - packets_recv);
+  std::println("Packets Reordered:  {}", seq.reordered());
+  std::println("Packets Received:   {}", packets_recv);
   if constexpr (M == Mode::BUSY) {
     stats::writeSamples("results/latencyPoll.bin", latency_samples);
     stats::writeSamples("results/pipelinePoll.bin", pipeline_samples);
@@ -96,7 +96,7 @@ template <Mode M> void receivePackets(const netrx::Socket &sock) {
   }
   stats::printPercentiles("Latency", latency_samples);
   stats::printPercentiles("Pipeline", pipeline_samples);
-  std::cout << "---------------------------------------\n";
+  std::println("---------------------------------------");
 }
 
 int main(int argc, char *argv[]) {
@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
       throw std::system_error(errno, std::generic_category(), "getsockopt");
     }
 
-    std::cout << "rcvbuf: " << actual << " bytes\n";
+    std::println("rcvbuf: {} bytes", actual);
     if (mode == Mode::BUSY) {
       receivePackets<Mode::BUSY>(sock);
     } else {
