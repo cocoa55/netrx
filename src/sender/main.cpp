@@ -17,12 +17,12 @@
 #include "netrx/stats.hpp"
 
 void sendPackets(const netrx::Socket &sock, const sockaddr_in &dest) {
-  std::vector<int64_t> lateness_samples(netrx::ITERATIONS);
-  std::vector<int64_t> sendto_samples(netrx::ITERATIONS);
+  std::vector<int64_t> lateness_samples(netrx::kIterations);
+  std::vector<int64_t> sendto_samples(netrx::kIterations);
   const auto start_time = std::chrono::steady_clock::now();
-  for (size_t i{}; i < netrx::ITERATIONS; i++) {
+  for (size_t i{}; i < netrx::kIterations; i++) {
     const auto due_time =
-        start_time + netrx::INTERVAL * static_cast<int64_t>(i);
+        start_time + netrx::kInterval * static_cast<int64_t>(i);
     while (due_time > std::chrono::steady_clock::now()) {
     }
     const auto actual_send = std::chrono::steady_clock::now();
@@ -44,7 +44,7 @@ void sendPackets(const netrx::Socket &sock, const sockaddr_in &dest) {
                        .side = netrx::Side::Ask,
                        .type = netrx::MsgType::Add};
     auto send_start = std::chrono::steady_clock::now();
-    ssize_t n = sendto(sock.getFd(), &msg, sizeof(msg), 0,
+    const ssize_t n = sendto(sock.getFd(), &msg, sizeof(msg), 0,
                        reinterpret_cast<const sockaddr *>(&dest), sizeof(dest));
     auto send_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now() - send_start);
@@ -55,22 +55,22 @@ void sendPackets(const netrx::Socket &sock, const sockaddr_in &dest) {
     sendto_samples[i] = send_duration.count();
   }
   std::println("-------[sendPackets] Finished-------");
-  stats::writeSamples("results/lateness.bin", lateness_samples);
-  stats::writeSamples("results/sendto.bin", sendto_samples);
-  if (auto s = stats::computeStats(lateness_samples))
-    stats::printPercentiles("Lateness", *s);
-  if (auto s = stats::computeStats(sendto_samples))
-    stats::printPercentiles("Send Time", *s);
+  netrx::writeSamples("results/lateness.bin", lateness_samples);
+  netrx::writeSamples("results/sendto.bin", sendto_samples);
+  if (const auto s = netrx::computeStats(lateness_samples))
+    netrx::printPercentiles("Lateness", *s);
+  if (const auto s = netrx::computeStats(sendto_samples))
+    netrx::printPercentiles("Send Time", *s);
 
   std::println("------------------------------------");
 }
 
 int main() {
   try {
-    netrx::Socket sock{};
+    const netrx::Socket sock{};
     sockaddr_in dest{};
     dest.sin_family = AF_INET;
-    dest.sin_port = htons(netrx::PORT);
+    dest.sin_port = htons(netrx::kPort);
     if (inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr) != 1) {
       std::cerr << "inet_pton: invalid address " << '\n';
       return 1;

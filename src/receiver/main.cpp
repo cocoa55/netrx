@@ -21,24 +21,24 @@
 #include "netrx/socket.hpp"
 #include "netrx/stats.hpp"
 
-enum class Mode : uint8_t { BUSY, SLEEPING };
+enum class Mode : uint8_t { Busy, Sleeping };
 template <Mode M> void receivePackets(const netrx::Socket &sock) {
-  std::vector<int64_t> latency_samples(netrx::ITERATIONS);
-  std::vector<int64_t> pipeline_samples(netrx::ITERATIONS);
+  std::vector<int64_t> latency_samples(netrx::kIterations);
+  std::vector<int64_t> pipeline_samples(netrx::kIterations);
   size_t packets_recv{};
   netrx::SeqTracker seq{};
-  netrx::Message msg;
+  netrx::Message msg{};
   std::chrono::steady_clock::time_point last_arrival{};
-  constexpr auto flag = M == Mode::BUSY ? MSG_DONTWAIT : 0;
-  while (packets_recv < netrx::ITERATIONS) {
+  constexpr auto flag = M == Mode::Busy ? MSG_DONTWAIT : 0;
+  while (packets_recv < netrx::kIterations) {
     const ssize_t rec = recv(sock.getFd(), &msg, sizeof(msg), flag);
     const auto time_recv = std::chrono::steady_clock::now();
     if (rec < 0) {
-      if constexpr (M == Mode::BUSY) {
+      if constexpr (M == Mode::Busy) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
           if (packets_recv == 0) {
             continue;
-          } else if (time_recv - last_arrival >= netrx::RECV_TIMEOUT) {
+          } else if (time_recv - last_arrival >= netrx::kRecvTimeout) {
             break;
           } else {
             continue;
@@ -47,7 +47,7 @@ template <Mode M> void receivePackets(const netrx::Socket &sock) {
           throw std::system_error(errno, std::generic_category(), "recv");
         }
       }
-      if constexpr (M == Mode::SLEEPING) {
+      if constexpr (M == Mode::Sleeping) {
         if (errno == EAGAIN || errno == EWOULDBLOCK)
           break;
         throw std::system_error(errno, std::generic_category(), "recv");
@@ -65,9 +65,9 @@ template <Mode M> void receivePackets(const netrx::Socket &sock) {
         now_ns - static_cast<int64_t>(msg.actual_send_ns);
 
     packets_recv++;
-    if constexpr (M == Mode::SLEEPING) {
+    if constexpr (M == Mode::Sleeping) {
       if (packets_recv == 1) {
-        timeval tv{.tv_sec = netrx::RECV_TIMEOUT.count(), .tv_usec = 0};
+        timeval tv{.tv_sec = netrx::kRecvTimeout.count(), .tv_usec = 0};
         if (setsockopt(sock.getFd(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) <
             0)
           throw std::system_error(errno, std::generic_category(), "setsockopt");
@@ -83,21 +83,21 @@ template <Mode M> void receivePackets(const netrx::Socket &sock) {
   }
   std::println("-------[receivePackets] Finished-------");
   std::println("Packets Dropped:    {}", seq.dropped());
-  std::println("Total Dropped:      {}", netrx::ITERATIONS - packets_recv);
+  std::println("Total Dropped:      {}", netrx::kIterations - packets_recv);
   std::println("Packets Reordered:  {}", seq.reordered());
   std::println("Packets Received:   {}", packets_recv);
-  if constexpr (M == Mode::BUSY) {
-    stats::writeSamples("results/latencyPoll.bin", latency_samples);
-    stats::writeSamples("results/pipelinePoll.bin", pipeline_samples);
+  if constexpr (M == Mode::Busy) {
+    netrx::writeSamples("results/latencyPoll.bin", latency_samples);
+    netrx::writeSamples("results/pipelinePoll.bin", pipeline_samples);
   }
-  if constexpr (M == Mode::SLEEPING) {
-    stats::writeSamples("results/latencySleep.bin", latency_samples);
-    stats::writeSamples("results/pipelineSleep.bin", pipeline_samples);
+  if constexpr (M == Mode::Sleeping) {
+    netrx::writeSamples("results/latencySleep.bin", latency_samples);
+    netrx::writeSamples("results/pipelineSleep.bin", pipeline_samples);
   }
-  if (auto s = stats::computeStats(latency_samples))
-    stats::printPercentiles("Latency", *s);
-  if (auto s = stats::computeStats(pipeline_samples))
-    stats::printPercentiles("Pipeline", *s);
+  if (auto s = netrx::computeStats(latency_samples))
+    netrx::printPercentiles("Latency", *s);
+  if (auto s = netrx::computeStats(pipeline_samples))
+    netrx::printPercentiles("Pipeline", *s);
   std::println("---------------------------------------");
 }
 
@@ -109,9 +109,9 @@ int main(int argc, char *argv[]) {
   const std::string_view arg1{argv[1]};
   Mode mode{};
   if (arg1 == "busy") {
-    mode = Mode::BUSY;
+    mode = Mode::Busy;
   } else if (arg1 == "sleep") {
-    mode = Mode::SLEEPING;
+    mode = Mode::Sleeping;
   } else {
     std::cerr << "unknown mode '" << arg1 << "'. usage: " << argv[0]
               << " busy|sleep [rcvbuf_bytes]\n";
@@ -131,10 +131,10 @@ int main(int argc, char *argv[]) {
     }
   }
   try {
-    netrx::Socket sock{};
+    const netrx::Socket sock{};
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(netrx::PORT);
+    addr.sin_port = htons(netrx::kPort);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
     auto bnd = bind(sock.getFd(), reinterpret_cast<const sockaddr *>(&addr),
                     sizeof(addr));
@@ -154,10 +154,10 @@ int main(int argc, char *argv[]) {
     }
 
     std::println("rcvbuf: {} bytes", actual);
-    if (mode == Mode::BUSY) {
-      receivePackets<Mode::BUSY>(sock);
+    if (mode == Mode::Busy) {
+      receivePackets<Mode::Busy>(sock);
     } else {
-      receivePackets<Mode::SLEEPING>(sock);
+      receivePackets<Mode::Sleeping>(sock);
     }
   } catch (const std::runtime_error &e) {
     std::cerr << e.what() << "\n";

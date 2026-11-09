@@ -6,7 +6,7 @@
 #include <span>
 #include <string_view>
 
-namespace stats {
+namespace netrx {
 struct LatencyStats {
   int64_t avg{};
   int64_t p50{};
@@ -17,7 +17,7 @@ struct LatencyStats {
   size_t count{};
 };
 std::optional<LatencyStats> computeStats(std::span<int64_t> samples);
-void printPercentiles(const std::string_view name, const LatencyStats &);
+void printPercentiles(std::string_view name, const LatencyStats &);
 void writeSamples(const std::filesystem::path &path,
                   std::span<int64_t> samples);
 } // namespace stats

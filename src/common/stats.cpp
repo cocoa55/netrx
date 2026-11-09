@@ -1,18 +1,14 @@
-#include <cstdint>
-#include <netrx/stats.hpp>
+#include "netrx/stats.hpp"
 #include <print>
-
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
-#include <ios>
-#include <iostream>
 #include <optional>
 #include <span>
 #include <stdexcept>
 #include <string_view>
 
-namespace stats {
+namespace netrx {
 void writeSamples(const std::filesystem::path &path,
                   std::span<int64_t> samples) {
   std::ofstream out(path, std::ios::binary);
@@ -25,6 +21,7 @@ void writeSamples(const std::filesystem::path &path,
     throw std::runtime_error("write failed: " + path.string());
   }
 }
+
 std::optional<LatencyStats> computeStats(std::span<int64_t> samples) {
   if (samples.empty()) {
     return std::nullopt;
@@ -41,6 +38,7 @@ std::optional<LatencyStats> computeStats(std::span<int64_t> samples) {
       .count = samples.size()};
   return stats;
 }
+
 void printPercentiles(const std::string_view name, const LatencyStats &stats) {
   std::println("---{}---", name);
   std::println("Average:           {}ns", stats.avg);
@@ -52,4 +50,4 @@ void printPercentiles(const std::string_view name, const LatencyStats &stats) {
   std::println("count:             {} packets", stats.count);
   std::println("----------------");
 }
-} // namespace stats
+} // namespace netrx

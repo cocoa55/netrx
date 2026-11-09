@@ -12,7 +12,7 @@ namespace netrx {
 class Socket {
 public:
   [[nodiscard]] Socket() {
-    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    const int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
       throw std::system_error(errno, std::generic_category(), "socket");
     }
@@ -25,6 +25,7 @@ public:
     }
     close(fd_);
   }
+
   Socket(Socket &&a) noexcept : fd_(std::exchange(a.fd_, -1)) {}
   Socket &operator=(Socket &&a) noexcept {
     if (this != &a) {
@@ -35,6 +36,7 @@ public:
     }
     return *this;
   }
+
   Socket(const Socket &) = delete;
   Socket &operator=(const Socket &) = delete;
   [[nodiscard]] int getFd() const noexcept { return fd_; }

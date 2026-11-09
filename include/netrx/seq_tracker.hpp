@@ -5,7 +5,7 @@
 namespace netrx {
 class SeqTracker {
 public:
-  void onPacket(uint64_t seq) noexcept {
+  void onPacket(const uint64_t seq) noexcept {
     if (expected_seq_ == seq) {
       expected_seq_++;
     } else if (expected_seq_ < seq) {
