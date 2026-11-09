@@ -58,8 +58,11 @@ void sendPackets(const netrx::Socket &sock, const sockaddr_in &dest) {
   std::println("-------[sendPackets] Finished-------");
   stats::writeSamples("results/lateness.bin", lateness_samples);
   stats::writeSamples("results/sendto.bin", sendto_samples);
-  stats::printPercentiles("Lateness", lateness_samples);
-  stats::printPercentiles("Send Time", sendto_samples);
+  if (auto s = stats::computeStats(lateness_samples))
+    stats::printPercentiles("Lateness", *s);
+  if (auto s = stats::computeStats(sendto_samples))
+    stats::printPercentiles("Send Time", *s);
+
   std::println("------------------------------------");
 }
 

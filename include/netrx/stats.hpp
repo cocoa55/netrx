@@ -2,12 +2,22 @@
 #include <cstdint>
 
 #include <filesystem>
+#include <optional>
+#include <span>
 #include <string_view>
-#include <vector>
 
 namespace stats {
-void printPercentiles(const std::string_view name,
-                      std::vector<int64_t> &samples);
+struct LatencyStats {
+  int64_t avg{};
+  int64_t p50{};
+  int64_t p95{};
+  int64_t p99{};
+  int64_t p99_9{};
+  int64_t pmax{};
+  size_t count{};
+};
+std::optional<LatencyStats> computeStats(std::span<int64_t> samples);
+void printPercentiles(const std::string_view name, const LatencyStats &);
 void writeSamples(const std::filesystem::path &path,
-                  const std::vector<int64_t> &samples);
+                  std::span<int64_t> samples);
 } // namespace stats

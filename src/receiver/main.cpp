@@ -78,7 +78,7 @@ template <Mode M> void receivePackets(const netrx::Socket &sock) {
   latency_samples.resize(packets_recv);
   pipeline_samples.resize(packets_recv);
   if (packets_recv == 0) {
-    std::cout << "No packets received\n";
+    std::println("No packets received");
     return;
   }
   std::println("-------[receivePackets] Finished-------");
@@ -94,8 +94,10 @@ template <Mode M> void receivePackets(const netrx::Socket &sock) {
     stats::writeSamples("results/latencySleep.bin", latency_samples);
     stats::writeSamples("results/pipelineSleep.bin", pipeline_samples);
   }
-  stats::printPercentiles("Latency", latency_samples);
-  stats::printPercentiles("Pipeline", pipeline_samples);
+  if (auto s = stats::computeStats(latency_samples))
+    stats::printPercentiles("Latency", *s);
+  if (auto s = stats::computeStats(pipeline_samples))
+    stats::printPercentiles("Pipeline", *s);
   std::println("---------------------------------------");
 }
 

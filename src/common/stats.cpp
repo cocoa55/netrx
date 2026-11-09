@@ -7,13 +7,14 @@
 #include <fstream>
 #include <ios>
 #include <iostream>
-#include <numeric>
+#include <optional>
+#include <span>
 #include <stdexcept>
 #include <string_view>
 
 namespace stats {
 void writeSamples(const std::filesystem::path &path,
-                  const std::vector<int64_t> &samples) {
+                  std::span<int64_t> samples) {
   std::ofstream out(path, std::ios::binary);
   if (!out) {
     throw std::runtime_error("cannot open " + path.string());
@@ -24,23 +25,31 @@ void writeSamples(const std::filesystem::path &path,
     throw std::runtime_error("write failed: " + path.string());
   }
 }
-void printPercentiles(const std::string_view name,
-                      std::vector<int64_t> &samples) {
+std::optional<LatencyStats> computeStats(std::span<int64_t> samples) {
+  if (samples.empty()) {
+    return std::nullopt;
+  }
   std::ranges::sort(samples);
-  const auto avg = std::accumulate(samples.begin(), samples.end(), int64_t{0}) /
-                   static_cast<int64_t>(samples.size());
-  const auto p50 = samples[static_cast<std::size_t>(samples.size() * 0.50)];
-  const auto p95 = samples[static_cast<std::size_t>(samples.size() * 0.95)];
-  const auto p99 = samples[static_cast<std::size_t>(samples.size() * 0.99)];
-  const auto p99_9 = samples[static_cast<std::size_t>(samples.size() * 0.999)];
-  const auto p_max = samples.back();
+  LatencyStats stats{
+      .avg = std::ranges::fold_left(samples, int64_t{0}, std::plus{}) /
+             static_cast<int64_t>(samples.size()),
+      .p50 = samples[static_cast<size_t>(samples.size() * 0.50)],
+      .p95 = samples[static_cast<size_t>(samples.size() * 0.95)],
+      .p99 = samples[static_cast<size_t>(samples.size() * 0.99)],
+      .p99_9 = samples[static_cast<size_t>(samples.size() * 0.999)],
+      .pmax = samples.back(),
+      .count = samples.size()};
+  return stats;
+}
+void printPercentiles(const std::string_view name, const LatencyStats &stats) {
   std::println("---{}---", name);
-  std::println("Average:           {}ns", avg);
-  std::println("p50:               {}", p50);
-  std::println("p95:               {}", p95);
-  std::println("p99:               {}", p99);
-  std::println("p99.9:             {}", p99_9);
-  std::println("pmax:              {}", p_max);
+  std::println("Average:           {}ns", stats.avg);
+  std::println("p50:               {}ns", stats.p50);
+  std::println("p95:               {}ns", stats.p95);
+  std::println("p99:               {}ns", stats.p99);
+  std::println("p99.9:             {}ns", stats.p99_9);
+  std::println("pmax:              {}ns", stats.pmax);
+  std::println("count:             {} packets", stats.count);
   std::println("----------------");
 }
 } // namespace stats
