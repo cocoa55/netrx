@@ -9,7 +9,6 @@
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
-#include <system_error>
 #include <vector>
 
 #include "netrx/config.hpp"
