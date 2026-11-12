@@ -12,13 +12,14 @@
 #include <vector>
 
 #include "netrx/config.hpp"
-#include "netrx/message.hpp"
-#include "netrx/socket.hpp"
+#include "netrx/replaysender.hpp"
 #include "netrx/stats.hpp"
+#include "netrx/udpsocket.hpp"
 
-void sendPackets(const netrx::Socket &sock, const sockaddr_in &dest) {
+void sendPackets(const netrx::UdpSocket &sock, const sockaddr_in &dest) {
   std::vector<int64_t> lateness_samples(netrx::kIterations);
   std::vector<int64_t> sendto_samples(netrx::kIterations);
+
   const auto start_time = std::chrono::steady_clock::now();
   for (size_t i{}; i < netrx::kIterations; i++) {
     const auto due_time =
@@ -28,7 +29,7 @@ void sendPackets(const netrx::Socket &sock, const sockaddr_in &dest) {
     const auto actual_send = std::chrono::steady_clock::now();
     const auto lateness = std::chrono::duration_cast<std::chrono::nanoseconds>(
         actual_send - due_time);
-    netrx::Message msg{.intended_send_ns = static_cast<uint64_t>(
+    netrx::UdpSocket msg{.intended_send_ns = static_cast<uint64_t>(
                            std::chrono::duration_cast<std::chrono::nanoseconds>(
                                due_time.time_since_epoch())
                                .count()),
@@ -67,14 +68,7 @@ void sendPackets(const netrx::Socket &sock, const sockaddr_in &dest) {
 
 int main() {
   try {
-    const netrx::Socket sock{};
-    sockaddr_in dest{};
-    dest.sin_family = AF_INET;
-    dest.sin_port = htons(netrx::kPort);
-    if (inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr) != 1) {
-      std::cerr << "inet_pton: invalid address " << '\n';
-      return 1;
-    }
+    netrx::ReplaySender UdpSender{};
     sendPackets(sock, dest);
   } catch (const std::runtime_error &e) {
     std::cerr << e.what() << '\n';
