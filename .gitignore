@@ -3,6 +3,7 @@ planning*/
 cmake-build-*/
 .idea/
 .cache/
+.claude/
 results/*.bin
 /perf.receiver.data
 /perf.sender.data
