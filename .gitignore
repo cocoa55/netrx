@@ -1,5 +1,9 @@
 build*/
+planning*/
 cmake-build-*/
 .idea/
 .cache/
 results/*.bin
+/perf.receiver.data
+/perf.sender.data
+/src/itch/itchdecoder
