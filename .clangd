@@ -1,0 +1,4 @@
+CompileFlags:
+  # GCC 16 libstdc++ <format> declares _M_bf16 under __BFLT16_DIG__ but uses it
+  # under __STDCPP_BFLOAT16_T__; CLion's clangd defines only the latter.
+  Add: [-U__STDCPP_BFLOAT16_T__]
