@@ -10,6 +10,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Shared code
-add_library(netrx_common src/common/stats.cpp)
+add_library(netrx_common src/common/stats.cpp
+        src/common/mappedfile.cpp)
 target_include_directories(netrx_common PUBLIC include)
 target_compile_options(netrx_common PRIVATE -Wall -Wextra -Wpedantic)
