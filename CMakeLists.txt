@@ -14,3 +14,8 @@ add_library(netrx_common src/common/stats.cpp
         src/common/mappedfile.cpp)
 target_include_directories(netrx_common PUBLIC include)
 target_compile_options(netrx_common PRIVATE -Wall -Wextra -Wpedantic)
+
+# ITCH decoding
+add_library(netrx_itch src/itch/decoder.cpp)
+target_link_libraries(netrx_itch PUBLIC netrx_common)
+target_compile_options(netrx_itch PRIVATE -Wall -Wextra -Wpedantic)
