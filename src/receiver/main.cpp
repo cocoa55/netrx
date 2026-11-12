@@ -1,10 +1,8 @@
 #include <cerrno>
 #include <cstdint>
-#include <cstdlib>
 #include <netinet/in.h>
 #include <print>
 #include <sys/socket.h>
-#include <unistd.h>
 
 #include <charconv>
 #include <chrono>
@@ -16,18 +14,19 @@
 #include <vector>
 
 #include "netrx/config.hpp"
-#include "netrx/message.hpp"
-#include "netrx/seq_tracker.hpp"
-#include "netrx/socket.hpp"
+#include "netrx/seqtracker.hpp"
 #include "netrx/stats.hpp"
+#include "netrx/udpsocket.hpp"
 
+namespace {
 enum class Mode : uint8_t { Busy, Sleeping };
-template <Mode M> void receivePackets(const netrx::Socket &sock) {
+
+template <Mode M> void receivePackets(const netrx::UdpSocket &sock) {
   std::vector<int64_t> latency_samples(netrx::kIterations);
   std::vector<int64_t> pipeline_samples(netrx::kIterations);
   size_t packets_recv{};
   netrx::SeqTracker seq{};
-  netrx::Message msg{};
+  netrx::UdpDatagram msg{};
   std::chrono::steady_clock::time_point last_arrival{};
   constexpr auto flag = M == Mode::Busy ? MSG_DONTWAIT : 0;
   while (packets_recv < netrx::kIterations) {
@@ -94,14 +93,15 @@ template <Mode M> void receivePackets(const netrx::Socket &sock) {
     netrx::writeSamples("results/latencySleep.bin", latency_samples);
     netrx::writeSamples("results/pipelineSleep.bin", pipeline_samples);
   }
-  if (auto s = netrx::computeStats(latency_samples))
+  if (const auto s = netrx::computeStats(latency_samples))
     netrx::printPercentiles("Latency", *s);
-  if (auto s = netrx::computeStats(pipeline_samples))
+  if (const auto s = netrx::computeStats(pipeline_samples))
     netrx::printPercentiles("Pipeline", *s);
   std::println("---------------------------------------");
 }
+}
 
-int main(int argc, char *argv[]) {
+int main(const int argc, char *argv[]) {
   if (argc != 2 && argc != 3) {
     std::cerr << "usage: " << argv[0] << " busy|sleep [rcvbuf_bytes]\n";
     return 1;
@@ -131,12 +131,12 @@ int main(int argc, char *argv[]) {
     }
   }
   try {
-    const netrx::Socket sock{};
+    const netrx::UdpSocket sock{};
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(netrx::kPort);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    auto bnd = bind(sock.getFd(), reinterpret_cast<const sockaddr *>(&addr),
+    const auto bnd = bind(sock.getFd(), reinterpret_cast<const sockaddr *>(&addr),
                     sizeof(addr));
     if (bnd < 0) {
       throw std::system_error(errno, std::generic_category(), "bind");

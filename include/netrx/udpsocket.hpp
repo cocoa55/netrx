@@ -9,9 +9,9 @@
 
 namespace netrx {
 
-class Socket {
+class UdpSocket {
 public:
-  [[nodiscard]] Socket() {
+  [[nodiscard]] UdpSocket() {
     const int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
       throw std::system_error(errno, std::generic_category(), "socket");
@@ -19,15 +19,16 @@ public:
     fd_ = fd;
   }
 
-  ~Socket() noexcept {
+  ~UdpSocket() noexcept {
     if (fd_ < 0) {
       return;
     }
     close(fd_);
   }
 
-  Socket(Socket &&a) noexcept : fd_(std::exchange(a.fd_, -1)) {}
-  Socket &operator=(Socket &&a) noexcept {
+  UdpSocket(UdpSocket &&a) noexcept : fd_(std::exchange(a.fd_, -1)) {}
+
+  UdpSocket &operator=(UdpSocket &&a) noexcept {
     if (this != &a) {
       if (fd_ >= 0) {
         close(fd_);
@@ -37,8 +38,8 @@ public:
     return *this;
   }
 
-  Socket(const Socket &) = delete;
-  Socket &operator=(const Socket &) = delete;
+  UdpSocket(const UdpSocket &) = delete;
+  UdpSocket &operator=(const UdpSocket &) = delete;
   [[nodiscard]] int getFd() const noexcept { return fd_; }
 
 private:

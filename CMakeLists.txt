@@ -13,13 +13,3 @@ endif()
 add_library(netrx_common src/common/stats.cpp)
 target_include_directories(netrx_common PUBLIC include)
 target_compile_options(netrx_common PRIVATE -Wall -Wextra -Wpedantic)
-
-# Sender
-add_executable(sender src/sender/main.cpp)
-target_link_libraries(sender PRIVATE netrx_common)
-target_compile_options(sender PRIVATE -Wall -Wextra -Wpedantic)
-
-# Receiver
-add_executable(receiver src/receiver/main.cpp)
-target_link_libraries(receiver PRIVATE netrx_common)
-target_compile_options(receiver PRIVATE -Wall -Wextra -Wpedantic)
