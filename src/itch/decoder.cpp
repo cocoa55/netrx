@@ -1,13 +1,14 @@
 #include "netrx/itch/decoder.hpp"
-
-#include <algorithm>
-#include <cstdint>
-#include <span>
-#include <cassert>
 #include "netrx/bytes.hpp"
 #include "netrx/itch/messages.hpp"
-#include <print>
+
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cstdint>
 #include <ranges>
+#include <span>
+
 namespace netrx::itch {
 // Header field lengths.
 constexpr auto kMessageTypeLength = 1;
@@ -48,7 +49,55 @@ constexpr auto kAttributionLength = 4;
 constexpr auto kMatchNumberLength = 8;
 constexpr auto kPrintableLength = 1;
 
-Message itchDecoder(std::span<const char> bytes) {
+// Message Full lengths
+constexpr auto kMessageHeaderSize = 11;
+
+constexpr auto kSystemEventSize = 12;            // S
+constexpr auto kStockDirectorySize = 39;         // R
+constexpr auto kAddOrderSize = 36;               // A
+constexpr auto kAddOrderMpidSize = 40;           // F
+constexpr auto kOrderExecutedSize = 31;          // E
+constexpr auto kOrderExecutedWithPriceSize = 36; // C
+constexpr auto kOrderCancelSize = 23;            // X
+constexpr auto kOrderDeleteSize = 19;            // D
+constexpr auto kOrderReplaceSize = 35;           // U
+
+// Entry table for each message type, giving the correct size for each.
+constexpr auto kMessageSize = [] {
+  std::array<std::uint8_t, 256> t{}; // 0 = unknown type, skip
+  t['S'] = kSystemEventSize;
+  t['R'] = kStockDirectorySize;
+  t['A'] = kAddOrderSize;
+  t['F'] = kAddOrderMpidSize;
+  t['E'] = kOrderExecutedSize;
+  t['C'] = kOrderExecutedWithPriceSize;
+  t['X'] = kOrderCancelSize;
+  t['D'] = kOrderDeleteSize;
+  t['U'] = kOrderReplaceSize;
+  return t;
+}();
+static_assert(kMessageHeaderSize == kMessageTypeLength + kStockLocateLength + kTrackingNumberLength + kTimestampLength);
+static_assert(kMessageSize['A'] == 36);
+static_assert(kMessageSize['H'] == 0); // skipped types stay 0
+
+std::expected<Message, DecodeError> itchDecoder(std::span<const char> bytes) {
+  // Ensure we have enough to read the header.
+  if (bytes.size() < kMessageHeaderSize) [[unlikely]] {
+    return std::unexpected(DecodeError::TooShort);
+  }
+
+  // Create entry table
+  const auto want = kMessageSize[static_cast<unsigned char>(bytes[0])];
+  if (want == 0) {
+    return std::monostate{};
+  }
+
+  // Ensure we have enough bytes to create a message.
+  if (bytes.size() != want) [[unlikely]] {
+    return std::unexpected(DecodeError::WrongLength);
+  }
+
+  // Start creating the header then message
   size_t i = 0;
   const auto msgType = static_cast<MessageType>(bytes[i]);
   i += kMessageTypeLength;
@@ -94,9 +143,7 @@ Message itchDecoder(std::span<const char> bytes) {
     return orderReplace(header, bytes.subspan(i));
   default:
     return std::monostate{};
-    break;
   }
-  std::unreachable();
 }
 
 AddOrder addOrder(const MessageHeader &msgHeader,
@@ -296,7 +343,6 @@ OrderCancel orderCancel(const MessageHeader &msgHeader,
 
   const auto cancelledShares = readBigEndian<Shares>(bytes.subspan(i));
   i += kSharesLength;
-
 
   assert(i == bytes.size());
   return {.header = msgHeader,

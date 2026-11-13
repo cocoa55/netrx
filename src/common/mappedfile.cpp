@@ -36,14 +36,14 @@ MappedFile::MappedFile(const std::filesystem::path &path) {
                             "Cannot map file.");
   }
 
-  // Prefetch pages.
-  madvise(details_.Begin, details_.Size, MADV_SEQUENTIAL);
-
   details_ = {
       .Descriptor = descriptor,
       .Begin = start,
       .Size = static_cast<size_t>(sb.st_size),
   };
+
+  //Prefetch Pages
+  madvise(details_.Begin, details_.Size, MADV_SEQUENTIAL);
 }
 
 MappedFile::~MappedFile() {

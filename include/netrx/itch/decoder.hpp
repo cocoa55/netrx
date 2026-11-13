@@ -1,11 +1,17 @@
 #pragma once
 
 #include <span>
-
+#include <expected>
 #include "netrx/itch/messages.hpp"
 
 namespace netrx::itch {
-Message itchDecoder(std::span<const char> bytes);
+
+enum class DecodeError {
+  TooShort,
+  WrongLength
+};
+
+std::expected<Message, DecodeError> itchDecoder(std::span<const char> bytes);
 
 // Per-message-type decoders.
 AddOrder addOrder(const MessageHeader &msgHeader, std::span<const char> bytes);
