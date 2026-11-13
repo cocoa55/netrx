@@ -59,7 +59,7 @@ std::vector<char> addOrderMessage() {
 
 void testAddOrderDirect() {
   const auto body = addOrderBody();
-  const netrx::itch::MessageHeader header{
+  constexpr netrx::itch::MessageHeader header{
       .messageType = netrx::itch::MessageType::AddOrder,
       .stockLocate = 13,
       .trackingNumber = 0,
@@ -80,7 +80,12 @@ void testAddOrderThroughDecoder() {
   const auto msg = addOrderMessage();
   const auto decoded = netrx::itch::itchDecoder(msg);
 
-  const auto *order = std::get_if<netrx::itch::AddOrder>(&decoded);
+  check(decoded.has_value(), "itchDecoder: decodes without error");
+  if (!decoded.has_value()) {
+    return;
+  }
+
+  const auto *order = std::get_if<netrx::itch::AddOrder>(&*decoded);
   check(order != nullptr, "itchDecoder: returns an AddOrder");
   if (order == nullptr) {
     return;
