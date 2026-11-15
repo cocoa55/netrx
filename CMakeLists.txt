@@ -16,7 +16,7 @@ target_include_directories(netrx_common PUBLIC include)
 target_compile_options(netrx_common PRIVATE -Wall -Wextra -Wpedantic)
 
 # ITCH decoding
-add_library(netrx_itch src/itch/decoder.cpp)
+add_library(netrx_itch src/itch/decoder.cpp src/itch/parser.cpp)
 target_link_libraries(netrx_itch PUBLIC netrx_common)
 target_compile_options(netrx_itch PRIVATE -Wall -Wextra -Wpedantic)
 
@@ -33,3 +33,5 @@ add_executable(itchdump_addorder_test src/tools/itchdump/addorder_test.cpp)
 target_link_libraries(itchdump_addorder_test PRIVATE netrx_itch)
 target_compile_options(itchdump_addorder_test PRIVATE -Wall -Wextra -Wpedantic)
 add_test(NAME itch_add_order COMMAND itchdump_addorder_test)
+
+add_subdirectory(tests)
