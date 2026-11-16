@@ -29,8 +29,15 @@ target_link_libraries(netrx_itch_san PUBLIC netrx_common_san)
 target_compile_options(netrx_itch_san PRIVATE -Wall -Wextra -Wpedantic
                                               ${NETRX_TEST_SANITIZE})
 
-add_executable(netrx_tests decoder_test.cpp parser_test.cpp)
-target_link_libraries(netrx_tests PRIVATE netrx_itch_san Catch2::Catch2WithMain)
+add_library(netrx_book_san ${CMAKE_SOURCE_DIR}/src/orderbook/orderbook.cpp)
+target_include_directories(netrx_book_san PUBLIC ${CMAKE_SOURCE_DIR}/include
+                                                 ${CMAKE_SOURCE_DIR}/src/orderbook)
+target_compile_options(netrx_book_san PRIVATE -Wall -Wextra -Wpedantic
+                                              ${NETRX_TEST_SANITIZE})
+
+add_executable(netrx_tests decoder_test.cpp parser_test.cpp orderbook_test.cpp)
+target_link_libraries(netrx_tests PRIVATE netrx_itch_san netrx_book_san
+                                          Catch2::Catch2WithMain)
 target_compile_options(netrx_tests PRIVATE -Wall -Wextra -Wpedantic
                                            ${NETRX_TEST_SANITIZE})
 target_link_options(netrx_tests PRIVATE ${NETRX_TEST_SANITIZE})
