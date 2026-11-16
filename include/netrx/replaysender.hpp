@@ -33,6 +33,5 @@ public:
 private:
   UdpSocket _sock{};
   sockaddr_in _dest{};
-
 };
 }
