@@ -1,14 +1,14 @@
+#include "netrx/itch/parser.hpp"
+#include "netrx/bytes.hpp"
+#include "netrx/itch/decoder.hpp"
+#include "netrx/orderbook.hpp"
 #include <array>
 #include <cassert>
 #include <cstdint>
 #include <print>
-#include <unordered_set>
+#include <algorithm>
 #include <variant>
-
-#include "netrx/bytes.hpp"
-#include "netrx/itch/decoder.hpp"
-#include "netrx/itch/parser.hpp"
-
+#include <vector>
 #include <utility>
 namespace netrx::itch {
 
@@ -16,37 +16,75 @@ namespace {
 // Functors for each message type.
 struct Checker {
   void operator()(const AddOrder &m) {
+    const auto ref = m.orderReferenceNumber;
+    assert(m.buySellIndicator == 'B' || m.buySellIndicator == 'S');
+
+    const Order order{static_cast<Side>(m.buySellIndicator), m.price, m.shares};
+    auto &book = books[m.header.stockLocate];
+    book.Add(ref, order);
     ++counts.add;
-    const bool added = live.insert(m.orderReferenceNumber).second;
-    assert(added);
+    liveOrders++;
+    peakOrderCount = std::max(liveOrders, peakOrderCount);
   }
+
   void operator()(const OrderDelete &m) {
+    const auto ref = m.orderReferenceNumber;
+    auto &book = books[m.header.stockLocate];
+    book.Delete(ref);
     ++counts.del;
-    const auto n = live.erase(m.orderReferenceNumber);
-    assert(n == 1);
+
+    assert(liveOrders > 0);
+    liveOrders--;
+    peakOrderCount = std::max(liveOrders, peakOrderCount);
   }
+
   void operator()(const SystemEvent &m) {
-    ++counts.system;
     lastEventCode = m.eventCode;
     counts.lastEventCode = m.eventCode;
+    ++counts.system;
   }
+
   void operator()(const OrderReplace &m) {
+    const auto oldRef = m.originalOrderReferenceNumber;
+    const auto newRef = m.newOrderReferenceNumber;
+    const auto shares = m.shares;
+    const auto price = m.price;
+
+    auto &book = books[m.header.stockLocate];
+    book.Replace(oldRef, newRef, shares, price);
     ++counts.replace;
-    const auto n = live.erase(m.originalOrderReferenceNumber);
-    assert(n == 1);
-    const auto added = live.insert(m.newOrderReferenceNumber).second;
-    assert(added);
   }
+
   void operator()(const OrderCancel &m) {
+    const auto ref = m.orderReferenceNumber;
+    const auto shares = m.cancelledShares;
+
+    auto &book = books[m.header.stockLocate];
+    const size_t before = book.OrderCount();
+    book.Cancel(ref, shares);
+    const size_t after = book.OrderCount();
+    assert(before >= after);
+
+    const size_t removed = before - after;
+    assert(liveOrders >= removed);
+
+    liveOrders -= removed;
     ++counts.cancel;
-    assert(live.contains(m.orderReferenceNumber));
   }
+
   void operator()(const StockDirectory &) { ++counts.directory; }
   void operator()(const AddOrderMpid &m) {
+    const auto ref = m.orderReferenceNumber;
+    assert(m.buySellIndicator == 'B' || m.buySellIndicator == 'S');
+
+    const Order order{static_cast<Side>(m.buySellIndicator), m.price, m.shares};
+    auto &book = books[m.header.stockLocate];
+    book.Add(ref, order);
     ++counts.addMpid;
-    const auto added = live.insert(m.orderReferenceNumber).second;
-    assert(added);
+    liveOrders++;
+    peakOrderCount = std::max(liveOrders, peakOrderCount);
   }
+
   void operator()(const OrderExecuted &m) {
     const auto ref = m.orderReferenceNumber;
     const auto shares = m.executedShares;
@@ -56,27 +94,45 @@ struct Checker {
     const size_t before = book.OrderCount();
     book.Execute(ref, shares);
     const size_t after = book.OrderCount();
-
     assert(before >= after);
+
+    const size_t removed = before - after;
     assert(liveOrders >= removed);
-    
+
+    liveOrders -= removed;
     ++counts.executed;
-    assert(live.contains(m.orderReferenceNumber));
   }
+
   void operator()(const OrderExecutedWithPrice &m) {
+    const auto ref = m.orderReferenceNumber;
+    const auto shares = m.executedShares;
+
+    auto &book = books[m.header.stockLocate];
+
+    const size_t before = book.OrderCount();
+    book.Execute(ref, shares);
+    const size_t after = book.OrderCount();
+    assert(before >= after);
+
+    const size_t removed = before - after;
+    assert(liveOrders >= removed);
+
+    liveOrders -= removed;
     ++counts.executedPrice;
-    assert(live.contains(m.orderReferenceNumber));
   }
+
   void operator()(const std::monostate &) { ++counts.unknown; }
 
   Counts counts;
-  std::unordered_set<uint64_t> live; // Each message updates live
+  std::vector<Orderbook> books = std::vector<Orderbook>(65'536);
+  size_t liveOrders{};
+  size_t peakOrderCount{};
   EventCode lastEventCode{};
 };
 } // namespace
 
 // Cut the file into messages
-std::expected<Counts, DriverError>parseItch(std::span<const char> view) {
+std::expected<Counts, DriverError> parseItch(std::span<const char> view) {
   // Hold information on the parsing
   Checker check;
   std::array<uint64_t, 256> unknownByType{};
@@ -122,7 +178,7 @@ std::expected<Counts, DriverError>parseItch(std::span<const char> view) {
   std::println("S {} R {} A {} F {} E {} C {} X {} D {} U {} unknown {}",
                c.system, c.directory, c.add, c.addMpid, c.executed,
                c.executedPrice, c.cancel, c.del, c.replace, c.unknown);
-  std::println("total {} live {} last event '{}'", total, check.live.size(),
+  std::println("total {} live {} peak {} last event '{}'", total, check.liveOrders,check.peakOrderCount,
                static_cast<char>(check.lastEventCode));
   uint64_t unknownTotal = 0;
   for (auto i{0uz}; i < unknownByType.size(); i++) {
