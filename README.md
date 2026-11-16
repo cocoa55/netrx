@@ -221,13 +221,14 @@ Nasdaq's public ITCH samples (emi.nasdaq.com, folder `ITCH/Nasdaq BX ITCH/`),
 unzip it, and put it at `planning/20191230.BX_ITCH_50`.
 
 ```sh
-cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
-cmake --build build-release -j
-./build-release/itchdump
+make run-release   # -O3, asserts compiled out  -> build-release/
+make run-debug     # -O0 -g, asserts + libstdc++ checks on -> build-debug/
+make test          # debug build, Catch2 suite under ASan/UBSan
 ```
 
-For the fully checked run with asserts on, use `-DCMAKE_BUILD_TYPE=Debug` and
-a `build-debug` folder instead.
+`make debug` / `make release` only build. The Makefile wraps the CMake presets
+in `CMakePresets.json`, so `cmake --preset release && cmake --build --preset
+release` works too, and CLion picks the presets up automatically.
 
 ## Where this started
 
