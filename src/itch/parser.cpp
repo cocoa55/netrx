@@ -48,6 +48,18 @@ struct Checker {
     assert(added);
   }
   void operator()(const OrderExecuted &m) {
+    const auto ref = m.orderReferenceNumber;
+    const auto shares = m.executedShares;
+
+    auto &book = books[m.header.stockLocate];
+
+    const size_t before = book.OrderCount();
+    book.Execute(ref, shares);
+    const size_t after = book.OrderCount();
+
+    assert(before >= after);
+    assert(liveOrders >= removed);
+    
     ++counts.executed;
     assert(live.contains(m.orderReferenceNumber));
   }
