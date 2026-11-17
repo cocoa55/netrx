@@ -3,10 +3,7 @@
 namespace netrx {
 auto Orderbook::Add(const itch::OrderReferenceNumber ref, const Order order)
     -> void {
-  // Check that this order doesn't already exist.
-  [[maybe_unused]] const bool added = orders_.insert({ref, order}).second;
-  assert(added);
-
+  orders_.Insert(ref, order);
   auto &levels = GetSide(order.side());
   levels[order.price()] += order.quantity();
 }
@@ -29,26 +26,26 @@ auto Orderbook::ReduceOrder(const OrderIt orderIt, const Shares shares) noexcept
     side.erase(levelIt);
   }
   if (order.isFilled()) {
-    orders_.erase(orderIt);
+    orders_.Erase(orderIt);
   }
 }
 
 auto Orderbook::Execute(const itch::OrderReferenceNumber ref,
                         const Shares executedShares) noexcept -> void {
-  const auto orderIt = orders_.find(ref);
+  auto *const orderIt = orders_.Find(ref);
   assert(orderIt != orders_.end());
   ReduceOrder(orderIt, executedShares);
 }
 
 auto Orderbook::Delete(const itch::OrderReferenceNumber ref) noexcept -> void {
-  const auto orderIt = orders_.find(ref);
+  auto *const orderIt = orders_.Find(ref);
   assert(orderIt != orders_.end());
   ReduceOrder(orderIt, orderIt->second.quantity());
 }
 
 auto Orderbook::Cancel(const itch::OrderReferenceNumber ref,
                        const Shares cancelledShares) noexcept -> void {
-  const auto orderIt = orders_.find(ref);
+  auto *const orderIt = orders_.Find(ref);
   assert(orderIt != orders_.end());
   ReduceOrder(orderIt, cancelledShares);
 }
@@ -56,7 +53,7 @@ auto Orderbook::Cancel(const itch::OrderReferenceNumber ref,
 auto Orderbook::Replace(const itch::OrderReferenceNumber oldRef,
                         const itch::OrderReferenceNumber newRef,
                         const Shares shares, const Price price) -> void {
-  const auto orderIt = orders_.find(oldRef);
+  auto const *const orderIt = orders_.Find(oldRef);
   assert(orderIt != orders_.end());
   const auto side = orderIt->second.side();
   const Order newOrder{side, price, shares};

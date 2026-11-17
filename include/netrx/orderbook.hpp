@@ -1,6 +1,6 @@
 #pragma once
 #include "netrx/itch/messages.hpp"
-
+#include "netrx/refmap.hpp"
 #include <cassert>
 #include <flat_map>
 #include <optional>
@@ -18,6 +18,7 @@ struct LevelInfo {
 
 class Order {
 public:
+  constexpr Order() = default;
   constexpr Order(const Side side, const Price price,
                   const Shares shares) noexcept
       : price_{price}, shares_{shares}, side_{side} {}
@@ -71,29 +72,25 @@ public:
                itch::OrderReferenceNumber newRef, Shares shares, Price price)
       -> void;
 
-  auto BestBid() const noexcept -> std::optional<Price>;
+  [[nodiscard]] auto BestBid() const noexcept -> std::optional<Price>;
 
-  auto BestAsk() const noexcept -> std::optional<Price>;
+  [[nodiscard]] auto BestAsk() const noexcept -> std::optional<Price>;
 
   [[nodiscard]] auto OrderCount() const noexcept -> size_t {
-    return orders_.size();
+    return orders_.Size();
   }
 
 private:
   using Levels = std::flat_map<Price, Shares>;
-  using OrderIt =
-      std::unordered_map<itch::OrderReferenceNumber, Order>::iterator;
+  using OrderIt = RefMap<itch::OrderReferenceNumber, Order>::iterator;
 
-  auto RemoveOrder(const itch::OrderReferenceNumber ref) noexcept -> void {
-    orders_.erase(ref);
-  }
   auto GetSide(const Side side) noexcept -> Levels & {
     return side == Side::Ask ? asks_ : bids_;
   }
 
   auto ReduceOrder(OrderIt orderIt, Shares shares) noexcept -> void;
 
-  std::unordered_map<itch::OrderReferenceNumber, Order> orders_;
+  RefMap<itch::OrderReferenceNumber, Order> orders_{16};
   Levels bids_;
   Levels asks_;
 };
