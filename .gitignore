@@ -11,3 +11,4 @@ results/*.bin
 /docs/
 /FlameGraph/
 *.perf.data*
+perf.*.data
