@@ -11,8 +11,8 @@
 
 namespace netrx {
 
-template <std::unsigned_integral Key, typename Value, size_t LoadNum = 1,
-          size_t LoadDen = 2>
+template <std::unsigned_integral Key, std::default_initializable Value,
+          size_t LoadNum = 1, size_t LoadDen = 2>
 class RefMap {
   static_assert(LoadNum > 0 && LoadNum < LoadDen);
 
@@ -81,7 +81,6 @@ public:
     }
     --size_;
   }
-
   [[nodiscard]] constexpr auto Size() const noexcept -> size_t { return size_; }
   [[nodiscard]] constexpr auto Capacity() const noexcept -> size_t {
     return slots_.size();
