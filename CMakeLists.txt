@@ -22,14 +22,16 @@ include(NetrxBuildOptions)
 add_library(netrx_common src/common/stats.cpp
         src/common/mappedfile.cpp
         src/orderbook/orderbook.cpp
-        include/netrx/orderbook.hpp)
+        include/netrx/orderbook.hpp
+        include/netrx/refmap.hpp)
 target_include_directories(netrx_common PUBLIC include)
 netrx_target_defaults(netrx_common)
 
 # ITCH decoding
 add_library(netrx_itch src/itch/decoder.cpp src/itch/parser.cpp
         src/orderbook/orderbook.cpp
-        include/netrx/orderbook.hpp)
+        include/netrx/orderbook.hpp
+        include/netrx/refmap.hpp)
 target_link_libraries(netrx_itch PUBLIC netrx_common)
 netrx_target_defaults(netrx_itch)
 
@@ -38,7 +40,8 @@ add_executable(itchdump src/tools/itchdump/main.cpp
         src/orderbook/orderbook.cpp
         include/netrx/orderbook.hpp
         src/feedhandler/feedhandler.cpp
-        src/feedhandler/feedhandler.hpp)
+        src/feedhandler/feedhandler.hpp
+        include/netrx/refmap.hpp)
 target_link_libraries(itchdump PRIVATE netrx_itch)
 netrx_target_defaults(itchdump)
 target_compile_definitions(itchdump PRIVATE
