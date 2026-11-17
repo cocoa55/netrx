@@ -6,7 +6,7 @@
 
 namespace netrx::itch {
 
-enum class DecodeError {
+enum class DecodeError : uint8_t{
   TooShort,
   WrongLength
 };
