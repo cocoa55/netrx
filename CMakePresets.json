@@ -39,6 +39,19 @@
         "NETRX_ENABLE_SANITIZERS": "OFF",
         "NETRX_ENABLE_CLANG_TIDY": "OFF"
       }
+    },
+    {
+      "name": "bench",
+      "displayName": "Bench (Release -O2, Google Benchmark + Abseil)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-bench",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O2 -DNDEBUG",
+        "NETRX_BUILD_BENCH": "ON",
+        "NETRX_ENABLE_SANITIZERS": "OFF",
+        "NETRX_ENABLE_CLANG_TIDY": "OFF"
+      }
     }
   ],
   "buildPresets": [
@@ -53,6 +66,13 @@
     {
       "name": "profile",
       "configurePreset": "profile"
+    },
+    {
+      "name": "bench",
+      "configurePreset": "bench",
+      "targets": [
+        "netrx_bench"
+      ]
     }
   ],
   "testPresets": [

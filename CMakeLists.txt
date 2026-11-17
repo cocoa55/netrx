@@ -55,3 +55,31 @@ netrx_target_defaults(itchdump_addorder_test)
 add_test(NAME itch_add_order COMMAND itchdump_addorder_test)
 
 add_subdirectory(tests)
+
+# Benchmarks (off by default: normal builds never download or compile them).
+option(NETRX_BUILD_BENCH "Build benchmarks" OFF)
+if(NETRX_BUILD_BENCH)
+  include(FetchContent)
+  set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+  set(ABSL_PROPAGATE_CXX_STD ON CACHE BOOL "" FORCE)
+  FetchContent_Declare(
+    benchmark
+    GIT_REPOSITORY https://github.com/google/benchmark.git
+    GIT_TAG v1.9.1
+    GIT_SHALLOW TRUE
+    SYSTEM)
+  FetchContent_Declare(
+    absl
+    GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+    GIT_TAG 20240722.0
+    GIT_SHALLOW TRUE
+    SYSTEM)
+  FetchContent_MakeAvailable(benchmark absl)
+
+  add_executable(netrx_bench bench/map_bench.cpp bench/trace.cpp)
+  target_link_libraries(netrx_bench PRIVATE netrx_itch benchmark::benchmark
+                        absl::flat_hash_map)
+  netrx_target_defaults(netrx_bench)
+  target_compile_definitions(netrx_bench PRIVATE
+          NETRX_ITCH_FILE="${CMAKE_SOURCE_DIR}/planning/20191230.BX_ITCH_50")
+endif()

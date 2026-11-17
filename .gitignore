@@ -8,7 +8,8 @@ results/*.bin
 /perf.receiver.data
 /perf.sender.data
 /src/itch/itchdecoder
-/docs/
+/docs/*
+!/docs/profiles/
 /FlameGraph/
 *.perf.data*
 perf.*.data

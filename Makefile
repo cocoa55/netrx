@@ -1,4 +1,4 @@
-.PHONY: all debug release profile run-debug run-release flamegraph test clean
+.PHONY: all debug release profile run-debug run-release flamegraph test bench clean
 
 all: debug release
 
@@ -31,5 +31,15 @@ flamegraph: profile
 test: debug
 	ctest --preset debug
 
+BENCH_OUT ?= results/bench/phase2-maps.json
+
+bench:
+	cmake --preset bench
+	cmake --build --preset bench -j
+	mkdir -p $(dir $(BENCH_OUT))
+	taskset -c 2 ./build-bench/netrx_bench --benchmark_repetitions=5 \
+	  --benchmark_report_aggregates_only=true \
+	  --benchmark_out=$(BENCH_OUT) --benchmark_out_format=json
+
 clean:
-	rm -rf build-debug build-release build-prof
+	rm -rf build-debug build-release build-prof build-bench
