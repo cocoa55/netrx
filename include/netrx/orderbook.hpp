@@ -18,18 +18,25 @@ struct LevelInfo {
 
 class Order {
 public:
-  Order(const Side side, const Price price, const Shares shares)
+  constexpr Order(const Side side, const Price price,
+                  const Shares shares) noexcept
       : price_{price}, shares_{shares}, side_{side} {}
 
-  [[nodiscard]] bool isFilled() const { return shares_ == 0; }
+  [[nodiscard]] constexpr auto isFilled() const noexcept -> bool {
+    return shares_ == 0;
+  }
 
-  [[nodiscard]] auto price() const { return price_; }
+  [[nodiscard]] constexpr auto price() const noexcept -> Price {
+    return price_;
+  }
 
-  [[nodiscard]] auto quantity() const { return shares_; }
+  [[nodiscard]] constexpr auto quantity() const noexcept -> Shares {
+    return shares_;
+  }
 
-  [[nodiscard]] auto side() const { return side_; }
+  [[nodiscard]] constexpr auto side() const noexcept -> Side { return side_; }
 
-  void fillOrder(const Shares quantity) {
+  constexpr auto fillOrder(const Shares quantity) noexcept -> void {
     assert(quantity <= shares_);
     shares_ -= quantity;
   }
@@ -45,41 +52,50 @@ class Orderbook {
 public:
   Orderbook() = default;
   Orderbook(const Orderbook &) = delete;
-  Orderbook &operator=(const Orderbook &) = delete;
+  auto operator=(const Orderbook &) -> Orderbook & = delete;
   Orderbook(Orderbook &&) = default;
-  Orderbook &operator=(Orderbook &&) = default;
+  auto operator=(Orderbook &&) -> Orderbook & = default;
   ~Orderbook() = default;
 
-  void Add(itch::OrderReferenceNumber ref, Order order);
+  auto Add(itch::OrderReferenceNumber ref, Order order) -> void;
 
-  void Execute(itch::OrderReferenceNumber ref, Shares executedShares);
+  auto Execute(itch::OrderReferenceNumber ref, Shares executedShares) noexcept
+      -> void;
 
-  void Cancel(itch::OrderReferenceNumber ref, Shares cancelledShares);
+  auto Cancel(itch::OrderReferenceNumber ref, Shares cancelledShares) noexcept
+      -> void;
 
-  void Delete(itch::OrderReferenceNumber ref);
+  auto Delete(itch::OrderReferenceNumber ref) noexcept -> void;
 
-  void Replace(itch::OrderReferenceNumber oldRef,
-               itch::OrderReferenceNumber newRef, Shares shares, Price price);
+  auto Replace(itch::OrderReferenceNumber oldRef,
+               itch::OrderReferenceNumber newRef, Shares shares, Price price)
+      -> void;
 
-  auto BestBid() const -> std::optional<Price>;
+  auto BestBid() const noexcept -> std::optional<Price>;
 
-  auto BestAsk() const -> std::optional<Price>;
+  auto BestAsk() const noexcept -> std::optional<Price>;
 
-  [[nodiscard]] auto OrderCount() const -> size_t { return orders_.size(); }
-
+  [[nodiscard]] auto OrderCount() const noexcept -> size_t {
+    return orders_.size();
+  }
 
 private:
-  auto RemoveOrder(const itch::OrderReferenceNumber ref) { orders_.erase(ref); }
-  auto &GetSide(const Side side) { return side == Side::Ask ? asks_ : bids_; }
-
+  using Levels = std::flat_map<Price, Shares>;
   using OrderIt =
       std::unordered_map<itch::OrderReferenceNumber, Order>::iterator;
-  void ReduceOrder(OrderIt orderIt, Shares shares);
+
+  auto RemoveOrder(const itch::OrderReferenceNumber ref) noexcept -> void {
+    orders_.erase(ref);
+  }
+  auto GetSide(const Side side) noexcept -> Levels & {
+    return side == Side::Ask ? asks_ : bids_;
+  }
+
+  auto ReduceOrder(OrderIt orderIt, Shares shares) noexcept -> void;
 
   std::unordered_map<itch::OrderReferenceNumber, Order> orders_;
-  // Levels
-  std::flat_map<Price, Shares> bids_;
-  std::flat_map<Price, Shares> asks_;
+  Levels bids_;
+  Levels asks_;
 };
 static_assert(std::is_move_constructible_v<Orderbook>);
 static_assert(!std::is_copy_constructible_v<Orderbook>);

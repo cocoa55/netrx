@@ -1,7 +1,8 @@
 #include "netrx/orderbook.hpp"
 
 namespace netrx {
-void Orderbook::Add(const itch::OrderReferenceNumber ref, const Order order) {
+auto Orderbook::Add(const itch::OrderReferenceNumber ref, const Order order)
+    -> void {
   // Check that this order doesn't already exist.
   [[maybe_unused]] const bool added = orders_.insert({ref, order}).second;
   assert(added);
@@ -10,7 +11,8 @@ void Orderbook::Add(const itch::OrderReferenceNumber ref, const Order order) {
   levels[order.price()] += order.quantity();
 }
 
-void Orderbook::ReduceOrder(const OrderIt orderIt, const Shares shares) {
+auto Orderbook::ReduceOrder(const OrderIt orderIt, const Shares shares) noexcept
+    -> void {
   auto &order = orderIt->second;
   order.fillOrder(shares);
 
@@ -31,29 +33,29 @@ void Orderbook::ReduceOrder(const OrderIt orderIt, const Shares shares) {
   }
 }
 
-void Orderbook::Execute(const itch::OrderReferenceNumber ref,
-                        const Shares executedShares) {
+auto Orderbook::Execute(const itch::OrderReferenceNumber ref,
+                        const Shares executedShares) noexcept -> void {
   const auto orderIt = orders_.find(ref);
   assert(orderIt != orders_.end());
   ReduceOrder(orderIt, executedShares);
 }
 
-void Orderbook::Delete(const itch::OrderReferenceNumber ref) {
+auto Orderbook::Delete(const itch::OrderReferenceNumber ref) noexcept -> void {
   const auto orderIt = orders_.find(ref);
   assert(orderIt != orders_.end());
   ReduceOrder(orderIt, orderIt->second.quantity());
 }
 
-void Orderbook::Cancel(const itch::OrderReferenceNumber ref,
-                       const Shares cancelledShares) {
+auto Orderbook::Cancel(const itch::OrderReferenceNumber ref,
+                       const Shares cancelledShares) noexcept -> void {
   const auto orderIt = orders_.find(ref);
   assert(orderIt != orders_.end());
   ReduceOrder(orderIt, cancelledShares);
 }
 
-void Orderbook::Replace(const itch::OrderReferenceNumber oldRef,
+auto Orderbook::Replace(const itch::OrderReferenceNumber oldRef,
                         const itch::OrderReferenceNumber newRef,
-                        const Shares shares, const Price price) {
+                        const Shares shares, const Price price) -> void {
   const auto orderIt = orders_.find(oldRef);
   assert(orderIt != orders_.end());
   const auto side = orderIt->second.side();
@@ -62,14 +64,14 @@ void Orderbook::Replace(const itch::OrderReferenceNumber oldRef,
   Delete(oldRef);
 }
 
-auto Orderbook::BestBid() const -> std::optional<Price> {
+auto Orderbook::BestBid() const noexcept -> std::optional<Price> {
   if (bids_.empty()) {
     return std::nullopt;
   }
   return bids_.rbegin()->first;
 }
 
-auto Orderbook::BestAsk() const -> std::optional<Price> {
+auto Orderbook::BestAsk() const noexcept -> std::optional<Price> {
   if (asks_.empty()) {
     return std::nullopt;
   }

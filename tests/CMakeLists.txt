@@ -10,36 +10,11 @@ FetchContent_MakeAvailable(Catch2)
 
 include(Catch)
 
-set(NETRX_TEST_SANITIZE -fsanitize=address,undefined -fno-omit-frame-pointer
-                        -fno-sanitize-recover=all)
-
-# Sanitized copies of netrx_common and netrx_itch, used only by the tests.
-# Same sources as the root CMakeLists.txt, so the normal targets keep
-# their flags.
-add_library(netrx_common_san ${CMAKE_SOURCE_DIR}/src/common/stats.cpp
-                             ${CMAKE_SOURCE_DIR}/src/common/mappedfile.cpp)
-target_include_directories(netrx_common_san PUBLIC ${CMAKE_SOURCE_DIR}/include)
-target_compile_options(netrx_common_san PRIVATE -Wall -Wextra -Wpedantic
-                                                ${NETRX_TEST_SANITIZE})
-target_link_options(netrx_common_san PUBLIC ${NETRX_TEST_SANITIZE})
-
-add_library(netrx_itch_san ${CMAKE_SOURCE_DIR}/src/itch/decoder.cpp
-                           ${CMAKE_SOURCE_DIR}/src/itch/parser.cpp)
-target_link_libraries(netrx_itch_san PUBLIC netrx_common_san)
-target_compile_options(netrx_itch_san PRIVATE -Wall -Wextra -Wpedantic
-                                              ${NETRX_TEST_SANITIZE})
-
-add_library(netrx_book_san ${CMAKE_SOURCE_DIR}/src/orderbook/orderbook.cpp)
-target_include_directories(netrx_book_san PUBLIC ${CMAKE_SOURCE_DIR}/include
-                                                 ${CMAKE_SOURCE_DIR}/src/orderbook)
-target_compile_options(netrx_book_san PRIVATE -Wall -Wextra -Wpedantic
-                                              ${NETRX_TEST_SANITIZE})
-
+# Sanitizers come from the build configuration (NETRX_ENABLE_SANITIZERS,
+# on by default for Debug), so the tests link the regular libraries.
 add_executable(netrx_tests decoder_test.cpp parser_test.cpp orderbook_test.cpp)
-target_link_libraries(netrx_tests PRIVATE netrx_itch_san netrx_book_san
-                                          Catch2::Catch2WithMain)
-target_compile_options(netrx_tests PRIVATE -Wall -Wextra -Wpedantic
-                                           ${NETRX_TEST_SANITIZE})
-target_link_options(netrx_tests PRIVATE ${NETRX_TEST_SANITIZE})
+target_include_directories(netrx_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/orderbook)
+target_link_libraries(netrx_tests PRIVATE netrx_itch Catch2::Catch2WithMain)
+netrx_target_defaults(netrx_tests)
 
 catch_discover_tests(netrx_tests)

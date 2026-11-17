@@ -13,20 +13,25 @@ endif()
 # checks. Release: -O3 -DNDEBUG (CMake's defaults), so assert() compiles out.
 add_compile_definitions($<$<CONFIG:Debug>:_GLIBCXX_ASSERTIONS>)
 
+# Warnings (-Wall -Wextra -Wconversion -Wshadow ... or /W4), clang-tidy and
+# ASan/UBSan. See cmake/NetrxBuildOptions.cmake for defaults and switches.
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+include(NetrxBuildOptions)
+
 # Shared code
 add_library(netrx_common src/common/stats.cpp
         src/common/mappedfile.cpp
         src/orderbook/orderbook.cpp
         include/netrx/orderbook.hpp)
 target_include_directories(netrx_common PUBLIC include)
-target_compile_options(netrx_common PRIVATE -Wall -Wextra -Wpedantic)
+netrx_target_defaults(netrx_common)
 
 # ITCH decoding
 add_library(netrx_itch src/itch/decoder.cpp src/itch/parser.cpp
         src/orderbook/orderbook.cpp
         include/netrx/orderbook.hpp)
 target_link_libraries(netrx_itch PUBLIC netrx_common)
-target_compile_options(netrx_itch PRIVATE -Wall -Wextra -Wpedantic)
+netrx_target_defaults(netrx_itch)
 
 # Offline ITCH dump tool
 add_executable(itchdump src/tools/itchdump/main.cpp
@@ -35,7 +40,7 @@ add_executable(itchdump src/tools/itchdump/main.cpp
         src/feedhandler/feedhandler.cpp
         src/feedhandler/feedhandler.hpp)
 target_link_libraries(itchdump PRIVATE netrx_itch)
-target_compile_options(itchdump PRIVATE -Wall -Wextra -Wpedantic)
+netrx_target_defaults(itchdump)
 target_compile_definitions(itchdump PRIVATE
         NETRX_ITCH_FILE="${CMAKE_SOURCE_DIR}/planning/20191230.BX_ITCH_50")
 
@@ -43,7 +48,7 @@ target_compile_definitions(itchdump PRIVATE
 enable_testing()
 add_executable(itchdump_addorder_test src/tools/itchdump/addorder_test.cpp)
 target_link_libraries(itchdump_addorder_test PRIVATE netrx_itch)
-target_compile_options(itchdump_addorder_test PRIVATE -Wall -Wextra -Wpedantic)
+netrx_target_defaults(itchdump_addorder_test)
 add_test(NAME itch_add_order COMMAND itchdump_addorder_test)
 
 add_subdirectory(tests)

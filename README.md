@@ -230,6 +230,14 @@ make test          # debug build, Catch2 suite under ASan/UBSan
 in `CMakePresets.json`, so `cmake --preset release && cmake --build --preset
 release` works too, and CLion picks the presets up automatically.
 
+The debug preset (used by `make debug`, `make run-debug` and `make test`) builds
+with `-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow` (`/W4`
+on MSVC), ASan + UBSan, and runs clang-tidy (checks in `.clang-tidy`) on every
+source as it compiles. Release and profile keep the warnings but skip the
+sanitizers and clang-tidy. Override with `-DNETRX_ENABLE_SANITIZERS=ON|OFF`,
+`-DNETRX_ENABLE_CLANG_TIDY=ON|OFF`, `-DNETRX_WARNINGS_AS_ERRORS=ON`; see
+`cmake/NetrxBuildOptions.cmake`.
+
 ## Where this started
 
 netrx began as a UDP loopback test bench: send a million packets, one every

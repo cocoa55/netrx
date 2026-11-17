@@ -8,11 +8,13 @@
   "configurePresets": [
     {
       "name": "debug",
-      "displayName": "Debug (asserts on, -O0 -g)",
+      "displayName": "Debug (-O0 -g, asserts, ASan+UBSan, clang-tidy)",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build-debug",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "NETRX_ENABLE_SANITIZERS": "ON",
+        "NETRX_ENABLE_CLANG_TIDY": "ON"
       }
     },
     {
@@ -21,7 +23,9 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build-release",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "NETRX_ENABLE_SANITIZERS": "OFF",
+        "NETRX_ENABLE_CLANG_TIDY": "OFF"
       }
     },
     {
@@ -31,7 +35,9 @@
       "binaryDir": "${sourceDir}/build-prof",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_FLAGS": "-g -fno-omit-frame-pointer"
+        "CMAKE_CXX_FLAGS": "-g -fno-omit-frame-pointer",
+        "NETRX_ENABLE_SANITIZERS": "OFF",
+        "NETRX_ENABLE_CLANG_TIDY": "OFF"
       }
     }
   ],
@@ -55,6 +61,10 @@
       "configurePreset": "debug",
       "output": {
         "outputOnFailure": true
+      },
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:abort_on_error=1",
+        "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1"
       }
     },
     {
