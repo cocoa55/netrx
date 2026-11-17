@@ -191,26 +191,57 @@ flowchart LR
 Latency is measured from the *planned* send time, so a slow sender can't hide
 its own delay.
 
+## The order book
+
+Each stock has its own book. A book holds two things:
+
+- **Every resting order**, looked up by its reference number. This is the
+  busiest structure in the program: about 12.3 million inserts and 13.9 million
+  removals over the day.
+- **Price levels per side**, meaning the total shares resting at each price, kept
+  sorted so the best bid and best ask are at the ends (`std::flat_map`).
+  The order table is `RefMap`, my own open-addressing hash map
+  (`include/netrx/refmap.hpp`). All entries live in one flat array, so a lookup
+  usually touches one or two neighbouring slots instead of following pointers to
+  separate heap nodes the way `std::unordered_map` does.
+
+- **Linear probing:** a key starts at its home slot and steps forward to the next
+  free one.
+- **Key 0 marks an empty slot.** ITCH never uses order reference 0.
+- **Backward-shift erase:** when an order is removed, the entries behind it
+  slide back to fill the gap, so the table never fills up with "deleted"
+  markers. That matters on a day with 13.9 million removals.
+- **Growth:** the capacity is always a power of two, and the table doubles when
+  it passes half full.
+  Swapping it in made the whole day **31% faster** (3.02 s to 2.07 s), with
+  identical output. A Google Benchmark replay of the day's 26.7 million real
+  order-table operations puts it level with `absl::flat_hash_map` and 2.6x faster
+  than `std::unordered_map`. Details are in `results/phase2-refmap.md` and
+  `results/bench/phase2-maps.json`, and before/after flame graphs are in
+  `docs/profiles/`.
+
 ## Where it stands
 
-**Working today:** the decoder and the offline tool. `itchdump` decodes the
-whole 29.2-million-message day and checks it as it goes. Every order is added
-once, every cancel, execute, replace and delete refers to a known order, the
-whole file is consumed, and the day ends with the closing event. Debug and
-Release builds give identical results:
+**Working today:** the decoder, the order book and the offline tool.
+`itchdump` decodes the whole 29.2-million-message day and builds every stock's
+book as it goes. Every order is added once, and every cancel, execute, replace
+and delete refers to a live order. The number of live orders peaks at exactly
+76,126 and returns to 0 at the close, the whole file is consumed, and the day
+ends with the closing event. Debug and Release builds give identical results:
 
 ```
 S 6 R 8906 A 12210139 F 45058 E 578839 C 2686 X 348198 D 11821540 U 1741672 unknown 2399713
-total 29156757
+total 29156757 live 0 peak 76126 last event 'C'
 ```
 
-| Build | Wall time for the whole day |
+| Version | Release wall time for the whole day |
 |---|---|
-| Release | 2.92 s |
-| Debug | 16.37 s |
+| Decoder only (phase 1) | 2.92 s |
+| Decoder + books on `std::unordered_map` | 3.02 s |
+| Decoder + books on `RefMap` | **2.07 s** |
 
-**Being built next:** the order book, then the sender, the live handler, gap
-recovery, and finally running across two machines over a real network link.
+**Being built next:** the sender, the live handler, gap recovery, and finally
+running across two machines over a real network link.
 
 ## Build and run
 
@@ -224,7 +255,11 @@ unzip it, and put it at `planning/20191230.BX_ITCH_50`.
 make run-release   # -O3, asserts compiled out  -> build-release/
 make run-debug     # -O0 -g, asserts + libstdc++ checks on -> build-debug/
 make test          # debug build, Catch2 suite under ASan/UBSan
+make bench         # Google Benchmark: order-table maps on the real day -> results/bench/
 ```
+```
+`make bench` downloads Google Benchmark and Abseil on first use. Normal builds
+never do.
 
 `make debug` / `make release` only build. The Makefile wraps the CMake presets
 in `CMakePresets.json`, so `cmake --preset release && cmake --build --preset
