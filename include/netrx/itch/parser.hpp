@@ -13,8 +13,8 @@ struct Counts {
   EventCode lastEventCode{};
 };
 
-enum class DriverError { BadLength, DecodeFailed, TrailingBytes };
+enum class DriverError : uint8_t{ BadLength, DecodeFailed, TrailingBytes };
 
 // Cut the file into messages
-std::expected<Counts, DriverError> parseItch(std::span<const char> view);
+[[nodiscard]] std::expected<Counts, DriverError> parseItch(std::span<const char> view);
 } // namespace netrx::itch

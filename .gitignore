@@ -13,3 +13,5 @@ results/*.bin
 /FlameGraph/
 *.perf.data*
 perf.*.data
+/TASKS.md
+/CLAUDE.md

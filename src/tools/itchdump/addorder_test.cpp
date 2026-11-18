@@ -9,7 +9,7 @@
 #include "netrx/itch/messages.hpp"
 
 namespace {
-int failures = 0;
+constinit int failures = 0;
 
 void check(bool ok, std::string_view what) {
   std::println("{} {}", ok ? "PASS" : "FAIL", what);

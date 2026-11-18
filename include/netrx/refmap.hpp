@@ -26,14 +26,14 @@ public:
   using const_iterator = const Slot *;
 
   // capacity must be a power of two (std::has_single_bit). All keys start at 0.
-  explicit RefMap(size_t initialCapacity)
+  constexpr explicit RefMap(size_t initialCapacity)
       : slots_(initialCapacity), mask_{initialCapacity - 1} {
     assert(std::has_single_bit(initialCapacity));
   }
 
   // Grow first if this insert would pass the max load.
   // Walk from Home(key) to the first empty slot, place it, ++size_.
-  auto Insert(Key key, Value value) -> void {
+  constexpr auto Insert(Key key, Value value) -> void {
     assert(key != 0);
     assert(Find(key) == end());
     if (ShouldGrow())
@@ -43,7 +43,7 @@ public:
     ++size_;
   }
 
-  [[nodiscard]] iterator Find(Key key) noexcept {
+  [[nodiscard]] constexpr iterator Find(Key key) noexcept {
     for (auto i{Home(key)};; i = Next(i)) {
       if (slots_[i].first == key)
         return &slots_[i];
@@ -52,7 +52,7 @@ public:
     }
   }
 
-  [[nodiscard]] const_iterator Find(Key key) const noexcept {
+  [[nodiscard]] constexpr const_iterator Find(Key key) const noexcept {
     for (auto i{Home(key)};; i = Next(i)) {
       if (slots_[i].first == key)
         return &slots_[i];
@@ -62,10 +62,11 @@ public:
   }
 
   // Find the slot (assert it exists), empty it -> hole, then backward shift:
-  // walk from Next(hole) until an empty slot; move entry j into the hole when
+  // walk from Next(hole) until an empty slot move entry j into the hole when
   // DistanceFromHome(j) >= ((j - hole) & mask_), and j becomes the new hole.
   // --size_. Any Value* from Find is stale after this.
-  void Erase(iterator it) noexcept(std::is_nothrow_move_assignable_v<Value>) {
+  constexpr void
+  Erase(iterator it) noexcept(std::is_nothrow_move_assignable_v<Value>) {
     assert(it != end());
     auto hole = static_cast<size_t>(it - slots_.data());
     slots_[hole].first = 0;
@@ -115,7 +116,7 @@ private:
     return (size_ + 1) * LoadDen > Capacity() * LoadNum;
   }
 
-  auto Grow() -> void {
+  constexpr auto Grow() -> void {
     auto old = std::move(slots_);
     slots_ = std::vector<Slot>(old.size() * 2);
     mask_ = Capacity() - 1;
@@ -126,8 +127,8 @@ private:
     ++growCount_;
   }
 
-  auto Place(Key key,
-             Value value) noexcept(std::is_nothrow_move_assignable_v<Value>)
+  constexpr auto
+  Place(Key key, Value value) noexcept(std::is_nothrow_move_assignable_v<Value>)
       -> void {
     for (auto i = Home(key);; i = Next(i)) {
       if (slots_[i].first == 0) {

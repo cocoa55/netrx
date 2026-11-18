@@ -5,7 +5,7 @@
 namespace netrx {
 class SeqTracker {
 public:
-  void onPacket(const uint64_t seq) noexcept {
+  constexpr void onPacket(const uint64_t seq) noexcept {
     if (expected_seq_ == seq) {
       expected_seq_++;
     } else if (expected_seq_ < seq) {
@@ -18,8 +18,10 @@ public:
         dropped_--;
     }
   }
-  [[nodiscard]] uint64_t dropped() const noexcept { return dropped_; }
-  [[nodiscard]] uint64_t reordered() const noexcept { return reordered_; }
+  [[nodiscard]] constexpr uint64_t dropped() const noexcept { return dropped_; }
+  [[nodiscard]] constexpr uint64_t reordered() const noexcept {
+    return reordered_;
+  }
 
 private:
   uint64_t expected_seq_{};
