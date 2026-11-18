@@ -35,7 +35,8 @@
     "load_avg": [8.61377,3.604,2.37012],
     "library_version": "v1.9.1",
     "library_build_type": "release",
-    "json_schema_version": 1
+    "json_schema_version": 1,
+    "note": "Noisy run: taken with cpu_scaling_enabled=true (powersave governor) and 1-min load_avg 8.6 on 6 cores, no isolcpus. The absl_flat_hash_map vs RefMap_1_2_cap16 per_locate gap (530 vs 542 ms median, 12 ms or 2.3%) is within noise: absl's stddev across the 5 repeats is 22 ms, and a later rerun at load 17 put them in the opposite order (596 vs 567 ms). Treat the two as level until rerun on an idle machine. Machine state is in phase2-maps.machine.txt."
   },
   "benchmarks": [
     {

@@ -1,0 +1,12 @@
+# Machine state for phase2-maps.json (run 2026-11-17T14:40:39-05:00).
+# Captured 2026-11-18; the machine has been up since 2026-11-10, so the kernel
+# command line and isolcpus were the same during the run. Governor and load
+# below are from capture time; the run itself had load_avg 8.6 and
+# cpu_scaling_enabled=true (see the JSON context).
+cpu: Intel(R) Core(TM) i5-9400F CPU @ 2.90GHz (6 cores, no SMT)
+kernel: 7.3.1-1-cachyos
+cmdline: quiet nowatchdog splash rw rootflags=subvol=/@ rd.luks.uuid=<uuid-redacted> root=/dev/mapper/luks-<uuid-redacted>
+isolcpus: (none)
+nohz_full: (none)
+governor: powersave (intel_pstate)
+intel_pstate no_turbo: 0

@@ -72,11 +72,18 @@ last minute of trading:
 | Busiest second | 61,147 messages |
 | Busiest millisecond | 1,513 messages, at 16:00:00.003 |
 | Most live orders at once | 76,126 |
-| Time budget per message in the busiest millisecond | **661 ns** |
+| Average time per message to clear the busiest millisecond | **661 ns** |
 
-That last number is the real target: to keep up at real speed, receiving,
-decoding and updating the book has to fit in about 661 ns per message at the
-worst moment of the day.
+That last number is a throughput target, not a per-message latency budget: 1 ms
+divided by 1,513 messages. To clear the busiest millisecond before the next one
+starts, receiving, decoding and updating the book has to average about 661 ns
+per message.
+
+It is not a latency guarantee, because the messages are not spread evenly over
+that millisecond. The busiest 100 µs holds 182 messages (about 549 ns each), and
+messages with the same timestamp arrive back to back. A message at the back of
+a burst waits for everything ahead of it, so even at an average of 661 ns per
+message its queueing delay can approach 1 ms.
 
 ## What travels over the wire
 
@@ -186,7 +193,8 @@ flowchart LR
 
 - **T1 − T0:** how late the sender was
 - **T3 − T2:** time spent in the kernel's receive path
-- **T4 − T3:** decode plus book update, which must fit the 661 ns budget
+- **T4 − T3:** decode plus book update, which must average under 661 ns per
+  message to keep up with the busiest millisecond
 
 Latency is measured from the *planned* send time, so a slow sender can't hide
 its own delay.
@@ -196,8 +204,11 @@ its own delay.
 Each stock has its own book. A book holds two things:
 
 - **Every resting order**, looked up by its reference number. This is the
-  busiest structure in the program: about 12.3 million inserts and 13.9 million
-  removals over the day.
+  busiest structure in the program: about 14.0 million inserts and 14.0 million
+  removals over the day (every order added is gone by the close). Inserts are
+  A + F + U = 13,996,869. Removals are D (11,821,540) plus U (1,741,672) plus
+  433,657 executes and cancels that empty an order; that last figure is derived
+  from live orders ending at 0, not counted.
 - **Price levels per side**, meaning the total shares resting at each price, kept
   sorted so the best bid and best ask are at the ends (`std::flat_map`).
   The order table is `RefMap`, my own open-addressing hash map
@@ -210,13 +221,17 @@ Each stock has its own book. A book holds two things:
 - **Key 0 marks an empty slot.** ITCH never uses order reference 0.
 - **Backward-shift erase:** when an order is removed, the entries behind it
   slide back to fill the gap, so the table never fills up with "deleted"
-  markers. That matters on a day with 13.9 million removals.
+  markers. That matters on a day with 14.0 million removals.
 - **Growth:** the capacity is always a power of two, and the table doubles when
   it passes half full.
   Swapping it in made the whole day **31% faster** (3.02 s to 2.07 s), with
   identical output. A Google Benchmark replay of the day's 26.7 million real
   order-table operations puts it level with `absl::flat_hash_map` and 2.6x faster
-  than `std::unordered_map`. Details are in `results/phase2-refmap.md` and
+  than `std::unordered_map`. Here an operation is one table-touching message
+  (A + F + E + C + X + D + U = 26,748,132): a U counts once even though it
+  removes one order and adds another, and E/C/X count even when they only look
+  an order up, so it is not the 14.0 million inserts plus 14.0 million removals.
+  Details are in `results/phase2-refmap.md` and
   `results/bench/phase2-maps.json`, and before/after flame graphs are in
   `docs/profiles/`.
 
